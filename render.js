@@ -146,7 +146,7 @@ function draw(){
     angle += deltaTime*(30/20000);
     if(angle >= 2*Math.PI){angle = 0;}
     var rm = Matrix.makeRotationMatrix([0,0,1], angle);
-    modelMatrix = rm.mult(modelMatrix);
+    modelMatrix = modelMatrix.mult(rm);
     //=========
 
         // Bind the position buffer.
