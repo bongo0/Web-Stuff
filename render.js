@@ -61,14 +61,28 @@ var viewLoc = gl.getUniformLocation(shaderProgram, 'viewMatrix');
 var vertexBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
+var vertexIndexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
+
   var positions = [
       // pos         // color
      1.0,  1.0,  0.0,   1.0, 0.0, 0.0, 1.0,
     -1.0, 1.0,  0.0,    0.0, 1.0, 0.0, 1.0,
     1.0,  -1.0, 0.0,    0.0, 0.0, 1.0, 1.0,
-    -1.0, -1.0, 0.0,    1.0, 1.0, 1.0, 1.0
+    -1.0, -1.0, 0.0,    1.0, 1.0, 1.0, 1.0,
+    0.0, 0.0, 2.0,      0.0, 1.0, 1.0, 1.0 
   ];
+
+  var indices = [
+      0, 1, 2,  1, 2, 3, // base
+      0, 1, 4, // sides
+      0, 2, 4,
+      2, 3, 4,
+      1, 3, 4
+  ];
+
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
   // code above this line is initialization code.
   // code below this line is rendering code.
@@ -77,6 +91,10 @@ gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
   // Tell WebGL how to convert from clip space to pixels
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+  // enable depth test
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
 
   // Clear the canvas
   gl.clearColor(0, 0, 0, 0);
@@ -143,15 +161,16 @@ function draw(){
 
     //=========
     //rotating the quad
-    angle += deltaTime*(30/20000);
+    angle += deltaTime*(1/1000);
     if(angle >= 2*Math.PI){angle = 0;}
-    var rm = Matrix.makeRotationMatrix([0,0,1], angle);
+    var rm = Matrix.makeRotationMatrix([1,1,1], angle);
     modelMatrix = modelMatrix.mult(rm);
     //=========
 
         // Bind the position buffer.
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-
+    //gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,vertexIndexBuffer);
+    
     gl.vertexAttribPointer(vertexPosAttribute, 3, gl.FLOAT, false, GL_FLOAT_SIZE*7, 0);
     gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, GL_FLOAT_SIZE*7, GL_FLOAT_SIZE*3);
     //send matrix data
@@ -161,7 +180,8 @@ function draw(){
     gl.uniformMatrix4fv(projectionLoc, false, projectionMatrix.getFloat32Array());
 
     // draw                       offset, count
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0,    4  );
+    //gl.drawArrays(gl.TRIANGLE_STRIP, 0,    4  );
+    gl.drawElements(gl.TRIANGLES,18, gl.UNSIGNED_SHORT, 0);
 }
 
 function initWebGL(canvas){
