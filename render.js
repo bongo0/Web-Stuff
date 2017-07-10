@@ -33,13 +33,14 @@ var fragmentSource =
 //--------" MAIN "--------------------------
 //------------------------------------------
 initWebGL(canvas);
-gl.clearColor(0.1, 0.1, 0.1, 1.0);
+
+// setup shader program
 var vertexShader = createShader(gl, vertexSource, gl.VERTEX_SHADER);
 var fragmentShader = createShader(gl, fragmentSource, gl.FRAGMENT_SHADER);
 var shaderProgram = createShaderProgram(gl, vertexShader, fragmentShader);
-
 gl.useProgram(shaderProgram);
 
+// get shader attributes
 var vertexPosAttribute = gl.getAttribLocation(shaderProgram, 'vertexPos');
 gl.enableVertexAttribArray(vertexPosAttribute);
 
@@ -57,11 +58,14 @@ var camTarget = [0,0,100];
 var modelMatrix = Matrix.make3DTranslationMatrix([0,0,-100]);
 var viewMatrix = Matrix.makeViewMatrix(camPos, camTarget, camUp);
 var projectionMatrix = Matrix.makeProjectionMatrix(Math.PI*(5/12)/*75deg*/, 0.1, 100, gl.canvas.clientWidth/gl.canvas.clientHeight);
-//
+
+// get matrices uniform locations
 var modelLoc = gl.getUniformLocation(shaderProgram, 'modelMatrix');
 var projectionLoc = gl.getUniformLocation(shaderProgram, 'projectionMatrix');
 var viewLoc = gl.getUniformLocation(shaderProgram, 'viewMatrix');
 //==========================================
+
+// data
 var positions = [
       // pos         // color
      1.0,  1.0,  0.0,   1.0, 0.0, 0.0, 1.0,
@@ -84,50 +88,23 @@ var positions = [
       0.0, 3.0, 0.0,
       0.0, -3.0, 0.0,
       3.0, 0.0, 0.0,
-      -3.0, 0.0, 0.0
+      -3.0, 0.0, 0.0,
+      3.0, 3.0, 0.0
   ];
-  var INSTANCE_COUNT = 5;
-  var ext = gl.getExtension("ANGLE_instanced_arrays");
+  var INSTANCE_COUNT = offsets.length/3;
 
+// Extension for draving instanced arrays
+var ext = gl.getExtension("ANGLE_instanced_arrays");
+if(ext == null){
+    alert('your browser sucks:: no support for ANGLE_instanced_arrays');
+}
+
+// setting up vertex buffer
 var vertexBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-var vertexIndexBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
-gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-var offsetBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer)
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(offsets), gl.STATIC_DRAW);
-gl.vertexAttribPointer(instanceOffsetAttribute, 3, gl.FLOAT, false, 0, 0);
-ext.vertexAttribDivisorANGLE(instanceOffsetAttribute, 1);
-
-
-
-  resizeEventGL();
-
-  // Tell WebGL how to convert from clip space to pixels
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-  // enable depth test
-  gl.enable(gl.DEPTH_TEST);
-  gl.depthFunc(gl.LEQUAL);
-
-  // Clear the canvas
-  gl.clearColor(0, 0, 0, 0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
-  // Tell it to use our program (pair of shaders)
-  gl.useProgram(shaderProgram);
-
-  // Turn on the attribute
-  //gl.enableVertexAttribArray(vertexPosAttribute);
-
-  // Bind the position buffer.
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-
-
+// setting up vertex attrib pointers
+// for documentation
   const GL_FLOAT_SIZE = 4;
   // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
   var size = 3;          // 3 components per iteration
@@ -135,18 +112,29 @@ ext.vertexAttribDivisorANGLE(instanceOffsetAttribute, 1);
   var normalize = false; // don't normalize the data
   var stride = GL_FLOAT_SIZE*7;        // 0 = move forward size * sizeof(type) each iteration to get the next position
   var offset = 0;        // start at the beginning of the buffer
-  gl.vertexAttribPointer(vertexPosAttribute, size, type, normalize, stride, offset);
-  gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, GL_FLOAT_SIZE*7, GL_FLOAT_SIZE*3);
+gl.vertexAttribPointer(vertexPosAttribute, size, type, normalize, stride, offset);
+gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, GL_FLOAT_SIZE*7, GL_FLOAT_SIZE*3);
 
-//gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+// vertex index buffer setup. in which order vertex data is to be drawn
+// when drawing ELEMENTS
+var vertexIndexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
-//send matrix data
-                    //  uniformLoc, do transpose, data
-    gl.uniformMatrix4fv(modelLoc, false, modelMatrix.getFloat32Array());
-    gl.uniformMatrix4fv(viewLoc, false, viewMatrix.getFloat32Array());
-    gl.uniformMatrix4fv(projectionLoc, false, projectionMatrix.getFloat32Array());
-  // draw                     offset, count
-  //gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+// world offsets for different instances of the model
+var offsetBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer)
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(offsets), gl.STATIC_DRAW);
+gl.vertexAttribPointer(instanceOffsetAttribute, 3, gl.FLOAT, false, 0, 0);
+ext.vertexAttribDivisorANGLE(instanceOffsetAttribute, 1);
+
+
+// if canvas has been resized update viewport size and stuff
+  resizeEventGL();
+
+  // enable depth test
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
 
 setInterval(draw, 15);
 //------------------------------------------
@@ -156,13 +144,16 @@ setInterval(draw, 15);
 var lastFrame = 0;
 var deltaTime = 0;
 var angle = 0;
+var fps = 0;
 // draw loop function
 function draw(){
     // frame timings
     var currentFrame = (new Date).getTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
-
+    // dont know how this should be done
+    fps = 1000/deltaTime;
+   
     // stuff for if window resized
     resizeEventGL();
 
@@ -191,11 +182,8 @@ function draw(){
         // Bind the position buffer.
     //gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     //gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,vertexIndexBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
 
-
-    
-    gl.vertexAttribPointer(vertexPosAttribute, 3, gl.FLOAT, false, GL_FLOAT_SIZE*7, 0);
-    gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, GL_FLOAT_SIZE*7, GL_FLOAT_SIZE*3);
     //send matrix data
                     //  uniformLoc,   do transpose,     data
     gl.uniformMatrix4fv(modelLoc,      false,          modelMatrix.getFloat32Array());
@@ -205,13 +193,13 @@ function draw(){
     // draw                       offset, count
     //gl.drawArrays(gl.TRIANGLE_STRIP, 0,    4  );
     //gl.drawElements(gl.TRIANGLES,18, gl.UNSIGNED_SHORT, 0);
-    ext.drawElementsInstancedANGLE(gl.TRIANGLES, 18, gl.UNSIGNED_SHORT, 0, INSTANCE_COUNT)
+    ext.drawElementsInstancedANGLE(gl.TRIANGLES, 18, gl.UNSIGNED_SHORT, 0, INSTANCE_COUNT);
 }
 
 function initWebGL(canvas){
     gl = null;
     // try to get webgl
-    gl = canvas.getContext('webgl');
+    gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     if(!gl){
         alert('your browser sucks');
     }
@@ -219,7 +207,7 @@ function initWebGL(canvas){
 }
 
 // calls resizeEventGL when window is resized
-window.addEventListener('resize',resizeEventGL,true);
+//window.addEventListener('resize',resizeEventGL,true);
 function resizeEventGL(){
     var realToCSSPixels = window.devicePixelRatio;
     // change global variables
