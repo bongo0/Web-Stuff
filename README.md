@@ -1,3 +1,4 @@
 # Web-Stuff
-learning web programming.
+learning web stuff.
+js & webGL..
 much git much wow.

@@ -7,6 +7,7 @@ var vertexSource =
     `
     attribute vec4 vertexPos;
     attribute vec4 vertexColor;
+    attribute vec3 offset;
 
     uniform mat4 modelMatrix;
     uniform mat4 viewMatrix;
@@ -14,7 +15,9 @@ var vertexSource =
 
     varying mediump vec4 vColor;
     void main(){
-        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vertexPos;
+        vec4 worldPos = modelMatrix * vertexPos;
+        worldPos += vec4(offset, 0.0);
+        gl_Position = projectionMatrix * viewMatrix * worldPos;
         vColor = vertexColor;
     }`;
 var fragmentSource =
@@ -42,13 +45,16 @@ gl.enableVertexAttribArray(vertexPosAttribute);
 
 var vertexColorAttribute = gl.getAttribLocation(shaderProgram, 'vertexColor');
 gl.enableVertexAttribArray(vertexColorAttribute);
+
+var instanceOffsetAttribute = gl.getAttribLocation(shaderProgram, 'offset');
+gl.enableVertexAttribArray(instanceOffsetAttribute);
 //==========================================
 //MATRIX STUFF
 var camPos = [0,0,0];
 var camUp = [0,1,0];
 var camTarget = [0,0,100];
 // define transformation matrices
-var modelMatrix = Matrix.make3DTranslationMatrix([0,0,-6]);
+var modelMatrix = Matrix.make3DTranslationMatrix([0,0,-100]);
 var viewMatrix = Matrix.makeViewMatrix(camPos, camTarget, camUp);
 var projectionMatrix = Matrix.makeProjectionMatrix(Math.PI*(5/12)/*75deg*/, 0.1, 100, gl.canvas.clientWidth/gl.canvas.clientHeight);
 //
@@ -56,15 +62,7 @@ var modelLoc = gl.getUniformLocation(shaderProgram, 'modelMatrix');
 var projectionLoc = gl.getUniformLocation(shaderProgram, 'projectionMatrix');
 var viewLoc = gl.getUniformLocation(shaderProgram, 'viewMatrix');
 //==========================================
-
-
-var vertexBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-
-var vertexIndexBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
-
-  var positions = [
+var positions = [
       // pos         // color
      1.0,  1.0,  0.0,   1.0, 0.0, 0.0, 1.0,
     -1.0, 1.0,  0.0,    0.0, 1.0, 0.0, 1.0,
@@ -81,11 +79,31 @@ gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
       1, 3, 4
   ];
 
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+  var offsets = [
+      0.0, 0.0, 0.0,
+      0.0, 3.0, 0.0,
+      0.0, -3.0, 0.0,
+      3.0, 0.0, 0.0,
+      -3.0, 0.0, 0.0
+  ];
+  var INSTANCE_COUNT = 5;
+  var ext = gl.getExtension("ANGLE_instanced_arrays");
 
-  // code above this line is initialization code.
-  // code below this line is rendering code.
+var vertexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+var vertexIndexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+var offsetBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer)
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(offsets), gl.STATIC_DRAW);
+gl.vertexAttribPointer(instanceOffsetAttribute, 3, gl.FLOAT, false, 0, 0);
+ext.vertexAttribDivisorANGLE(instanceOffsetAttribute, 1);
+
+
 
   resizeEventGL();
 
@@ -104,7 +122,7 @@ gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
   gl.useProgram(shaderProgram);
 
   // Turn on the attribute
-  gl.enableVertexAttribArray(vertexPosAttribute);
+  //gl.enableVertexAttribArray(vertexPosAttribute);
 
   // Bind the position buffer.
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -119,13 +137,16 @@ gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, vertexIndexBuffer);
   var offset = 0;        // start at the beginning of the buffer
   gl.vertexAttribPointer(vertexPosAttribute, size, type, normalize, stride, offset);
   gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, GL_FLOAT_SIZE*7, GL_FLOAT_SIZE*3);
+
+//gl.bindBuffer(gl.ARRAY_BUFFER, offsetBuffer);
+
 //send matrix data
                     //  uniformLoc, do transpose, data
     gl.uniformMatrix4fv(modelLoc, false, modelMatrix.getFloat32Array());
     gl.uniformMatrix4fv(viewLoc, false, viewMatrix.getFloat32Array());
     gl.uniformMatrix4fv(projectionLoc, false, projectionMatrix.getFloat32Array());
   // draw                     offset, count
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  //gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
 setInterval(draw, 15);
 //------------------------------------------
@@ -154,7 +175,7 @@ function draw(){
     var camPos = [0,0,0];
     var camUp = [0,1,0];
     var camTarget = [0,0,100];
-    modelMatrix = Matrix.make3DTranslationMatrix([0,0,-6]);
+    modelMatrix = Matrix.make3DTranslationMatrix([0,0,-10]);
     viewMatrix = Matrix.makeViewMatrix(camPos, camTarget, camUp);
     projectionMatrix = Matrix.makeProjectionMatrix(Math.PI*(5/12)/*75deg*/, 0.1, 100, gl.canvas.clientWidth/gl.canvas.clientHeight);
     //=============================================
@@ -169,7 +190,9 @@ function draw(){
 
         // Bind the position buffer.
     //gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,vertexIndexBuffer);
+    //gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,vertexIndexBuffer);
+
+
     
     gl.vertexAttribPointer(vertexPosAttribute, 3, gl.FLOAT, false, GL_FLOAT_SIZE*7, 0);
     gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, GL_FLOAT_SIZE*7, GL_FLOAT_SIZE*3);
@@ -181,7 +204,8 @@ function draw(){
 
     // draw                       offset, count
     //gl.drawArrays(gl.TRIANGLE_STRIP, 0,    4  );
-    gl.drawElements(gl.TRIANGLES,18, gl.UNSIGNED_SHORT, 0);
+    //gl.drawElements(gl.TRIANGLES,18, gl.UNSIGNED_SHORT, 0);
+    ext.drawElementsInstancedANGLE(gl.TRIANGLES, 18, gl.UNSIGNED_SHORT, 0, INSTANCE_COUNT)
 }
 
 function initWebGL(canvas){
