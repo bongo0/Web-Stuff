@@ -49,14 +49,15 @@ gl.enableVertexAttribArray(vertexColorAttribute);
 
 var instanceOffsetAttribute = gl.getAttribLocation(shaderProgram, 'offset');
 gl.enableVertexAttribArray(instanceOffsetAttribute);
+
+//==CAMERA==================================
+var camera = new Camera(canvas);
+
 //==========================================
 //MATRIX STUFF
-var camPos = [0,0,0];
-var camUp = [0,1,0];
-var camTarget = [0,0,100];
 // define transformation matrices
 var modelMatrix = Matrix.make3DTranslationMatrix([0,0,-100]);
-var viewMatrix = Matrix.makeViewMatrix(camPos, camTarget, camUp);
+var viewMatrix = camera.viewMatrix;
 var projectionMatrix = Matrix.makeProjectionMatrix(Math.PI*(5/12)/*75deg*/, 0.1, 100, gl.canvas.clientWidth/gl.canvas.clientHeight);
 
 // get matrices uniform locations
@@ -163,11 +164,9 @@ function draw(){
 
     //=============================================
     // setup matrices
-    var camPos = [0,0,0];
-    var camUp = [0,1,0];
-    var camTarget = [0,0,100];
+
     modelMatrix = Matrix.make3DTranslationMatrix([0,0,-10]);
-    viewMatrix = Matrix.makeViewMatrix(camPos, camTarget, camUp);
+    viewMatrix = camera.viewMatrix;
     projectionMatrix = Matrix.makeProjectionMatrix(Math.PI*(5/12)/*75deg*/, 0.1, 100, gl.canvas.clientWidth/gl.canvas.clientHeight);
     //=============================================
 
