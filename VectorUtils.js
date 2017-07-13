@@ -33,6 +33,20 @@ var Vector = {
             ans[i] = (vec1[i] - vec2[i]);
         }
         return ans;
+    },
+    add: function(vec1, vec2){
+        var ans = [];
+        for(var i = 0; i < vec1.length; i++){
+            ans[i] = (vec1[i] + vec2[i]);
+        }
+        return ans;
+    },
+    mult_cpy: function(vec, scalar){
+        var vecRtrn = [];
+        for(var i = 0; i < vec.length; i++){
+            vecRtrn[i] = vec[i]*scalar;
+        }
+        return vecRtrn;
     }
     
 };

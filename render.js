@@ -12,13 +12,17 @@ var vertexSource =
     uniform mat4 modelMatrix;
     uniform mat4 viewMatrix;
     uniform mat4 projectionMatrix;
-
+    uniform float dt;
+    
     varying mediump vec4 vColor;
     void main(){
         vec4 worldPos = modelMatrix * vertexPos;
-        worldPos += vec4(offset, 0.0);
+        worldPos += vec4(offset.x, offset.y + sin(dt+offset.x/10.0)*2.0, offset.z+ sin(dt+offset.y/10.0)*2.0 , 0.0);
         gl_Position = projectionMatrix * viewMatrix * worldPos;
-        vColor = vertexColor;
+        vColor = vec4(vertexColor.r+0.5*sin(dt+offset.x/10.0)*sin(dt),
+                    vertexColor.g+0.5*sin(dt+offset.y/10.0)*sin(dt),
+                    vertexColor.b+0.5*sin(dt)*sin(dt),
+                    vertexColor.a);
     }`;
 var fragmentSource =
     `
@@ -64,6 +68,7 @@ var projectionMatrix = Matrix.makeProjectionMatrix(Math.PI*(5/12)/*75deg*/, 0.1,
 var modelLoc = gl.getUniformLocation(shaderProgram, 'modelMatrix');
 var projectionLoc = gl.getUniformLocation(shaderProgram, 'projectionMatrix');
 var viewLoc = gl.getUniformLocation(shaderProgram, 'viewMatrix');
+var dtLoc = gl.getUniformLocation(shaderProgram, 'dt');
 //==========================================
 
 // data
@@ -85,13 +90,24 @@ var positions = [
   ];
 
   var offsets = [
-      0.0, 0.0, 0.0,
+      /*0.0, 0.0, 0.0,
       0.0, 3.0, 0.0,
       0.0, -3.0, 0.0,
       3.0, 0.0, 0.0,
       -3.0, 0.0, 0.0,
-      3.0, 3.0, 0.0
+      3.0, 3.0, 0.0,
+      -3.0, 3.0, 0.0,
+      -3.0, -3.0, 0.0,
+      3.0, -3.0, 0.0*/
   ];
+
+  for(var i = -100; i < 100; i+=2){
+      for(var j = -49; j < 50; j+=2){
+          offsets.push(i,j,-49);
+          
+      }
+  }
+
   var INSTANCE_COUNT = offsets.length/3;
 
 // Extension for draving instanced arrays
@@ -146,6 +162,7 @@ var lastFrame = 0;
 var deltaTime = 0;
 var angle = 0;
 var fps = 0;
+var dt = 0;
 // draw loop function
 function draw(){
     // frame timings
@@ -164,10 +181,10 @@ function draw(){
 
     //=============================================
     // setup matrices
-
+    camera.update(deltaTime);
     modelMatrix = Matrix.make3DTranslationMatrix([0,0,-10]);
     viewMatrix = camera.viewMatrix;
-    projectionMatrix = Matrix.makeProjectionMatrix(Math.PI*(5/12)/*75deg*/, 0.1, 100, gl.canvas.clientWidth/gl.canvas.clientHeight);
+    projectionMatrix = Matrix.makeProjectionMatrix(Math.PI/2 /*75deg*/, 0.1, 100, gl.canvas.clientWidth/gl.canvas.clientHeight);
     //=============================================
 
     //=========
@@ -188,7 +205,7 @@ function draw(){
     gl.uniformMatrix4fv(modelLoc,      false,          modelMatrix.getFloat32Array());
     gl.uniformMatrix4fv(viewLoc, false, viewMatrix.getFloat32Array());
     gl.uniformMatrix4fv(projectionLoc, false, projectionMatrix.getFloat32Array());
-
+    gl.uniform1f(dtLoc, dt+=0.1);
     // draw                       offset, count
     //gl.drawArrays(gl.TRIANGLE_STRIP, 0,    4  );
     //gl.drawElements(gl.TRIANGLES,18, gl.UNSIGNED_SHORT, 0);
