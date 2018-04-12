@@ -1,4 +1,7 @@
-Camera = function(canvas){
+
+class Camera{
+
+constructor(canvas){
     this.canvas = canvas;
     
     this.pitch = 0.0;
@@ -31,13 +34,14 @@ Camera = function(canvas){
         this.mousePressed = false;
         //console.log('mouseUp');
     });
-};
+}
 
-Camera.prototype.update = function(deltaTime){
+
+
+update(deltaTime){
     this.viewMatrix = Matrix.makeViewMatrix(this.pos, Vector.add(this.pos,this.target), this.up);
     
-    
-    var moveSpeed = 15;
+    let moveSpeed = 30;
     if(this.pressedButtons['w']){
         this.pos = Vector.add(this.pos, Vector.mult_cpy(this.target,-moveSpeed*deltaTime/1000));
     }
@@ -52,7 +56,7 @@ Camera.prototype.update = function(deltaTime){
     }
 }
 
-Camera.prototype.updateAngles = function(dYaw, dPitch){
+updateAngles(dYaw, dPitch){
     
     // bounding camera angles
     this.pitch += dPitch;
@@ -83,16 +87,16 @@ Camera.prototype.updateAngles = function(dYaw, dPitch){
     //this.viewMatrix = Matrix.makeViewMatrix(this.pos, this.target, this.up);
 }
 
-Camera.prototype.mouseEventUpdate = function(evt){
+mouseEventUpdate(evt){
     
     // get current mouse pos as Normalized Device Coordinates
-    var rect = this.canvas.getBoundingClientRect();
-    var height = this.canvas.clientHeight;
-    var width = this.canvas.clientWidth;
-    var x = evt.clientX - rect.left;
-    var y = evt.clientY - rect.top;    
-    var NDCx = (2*x - width)/width;
-    var NDCy = (2*y - height)/height;
+    let rect = this.canvas.getBoundingClientRect();
+    let height = this.canvas.clientHeight;
+    let width = this.canvas.clientWidth;
+    let x = evt.clientX - rect.left;
+    let y = evt.clientY - rect.top;    
+    let NDCx = (2*x - width)/width;
+    let NDCy = (2*y - height)/height;
     if(this.mousePressed){
     this.updateAngles(NDCx - this.lastMouseX, -NDCy + this.lastMouseY);
     }
@@ -101,7 +105,7 @@ Camera.prototype.mouseEventUpdate = function(evt){
     //console.log(this.lastMouseX,' : ', this.lastMouseY);
 }
 
-Camera.prototype.keyDownEvent = function(evt){
+keyDownEvent(evt){
     // could remove the if..
     if(evt.key === 'w' || evt.key === 'a' || evt.key === 's' || evt.key === 'd'){
         this.pressedButtons[evt.key] = true;
@@ -109,10 +113,11 @@ Camera.prototype.keyDownEvent = function(evt){
     
 }
 
-Camera.prototype.keyUpEvent = function(evt){
+keyUpEvent(evt){
         // could remove the if..
     if(evt.key === 'w' || evt.key === 'a' || evt.key === 's' || evt.key === 'd'){
         this.pressedButtons[evt.key] = false;
     }
 }
 
+};
